@@ -64,7 +64,15 @@ class TaskListScreen extends StatelessWidget {
             Navigator.of(context).push(
                 MaterialPageRoute(builder: (context) => EditTaskScreen()));
           },
-          label: const Text('Add New Task')),
+          label: Row(
+            children: const [
+              Text('Add New Task'),
+              SizedBox(
+                width: 4.0,
+              ),
+              Icon(CupertinoIcons.add_circled_solid)
+            ],
+          )),
       body: SafeArea(
         child: Column(
           children: [
@@ -169,7 +177,7 @@ class TaskListScreen extends StatelessWidget {
                               itemCount: values.values.length,
                               itemBuilder: (context, index) {
                                 final TaskEntity taskEntity =
-                                box.values.toList()[index];
+                                    box.values.toList()[index];
                                 return TaskItem(task: taskEntity);
                               });
                         },
@@ -186,7 +194,7 @@ class TaskListScreen extends StatelessWidget {
   }
 }
 
-class TaskItem extends StatelessWidget {
+class TaskItem extends StatefulWidget {
   const TaskItem({
     super.key,
     required this.task,
@@ -195,28 +203,44 @@ class TaskItem extends StatelessWidget {
   final TaskEntity task;
 
   @override
+  State<TaskItem> createState() => _TaskItemState();
+}
+
+class _TaskItemState extends State<TaskItem> {
+  @override
   Widget build(BuildContext context) {
     ThemeData themeData = Theme.of(context);
     return InkWell(
-      onTap: (){
-
+      onTap: () {
+        setState(() {
+          widget.task.isCompleted = !widget.task.isCompleted;
+        });
       },
       child: Container(
         padding: const EdgeInsets.only(left: 12.0, right: 12.0),
+        margin: const EdgeInsets.only(top: 8.0),
         height: 84,
         decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(8.0),
-            color: themeData.colorScheme.surface,
-            boxShadow: [
-              BoxShadow(blurRadius: 20.0, color: Colors.black.withOpacity(0.1))
-            ]),
+          borderRadius: BorderRadius.circular(8.0),
+          color: themeData.colorScheme.surface,
+        ),
         child: Row(
           children: [
-            const TodoCheckBox(isChecked: true),
-            const SizedBox(width: 12.0,),
-            Text(
-              task.name,
-              style: const TextStyle(fontSize: 20.0),
+            TodoCheckBox(isChecked: widget.task.isCompleted),
+            const SizedBox(
+              width: 12.0,
+            ),
+            Expanded(
+              child: Text(
+                widget.task.name,
+                maxLines: 1,
+                overflow: TextOverflow.fade,
+                style: TextStyle(
+                    fontSize: 20.0,
+                    decoration: widget.task.isCompleted
+                        ? TextDecoration.lineThrough
+                        : null),
+              ),
             ),
           ],
         ),
@@ -255,7 +279,7 @@ class EditTaskScreen extends StatelessWidget {
           TextField(
             controller: _controller,
             decoration:
-            const InputDecoration(label: Text('Add a task for today...')),
+                const InputDecoration(label: Text('Add a task for today...')),
           )
         ],
       ),
@@ -270,6 +294,8 @@ class TodoCheckBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ThemeData themeData = Theme.of(context);
+
     return Container(
       width: 24.0,
       height: 24.0,
@@ -277,13 +303,18 @@ class TodoCheckBox extends StatelessWidget {
         borderRadius: BorderRadius.circular(12.0),
         border: !isChecked
             ? Border.all(
-          color: secondaryTextColor,
-        )
+                color: secondaryTextColor,
+              )
             : null,
         color: isChecked ? primaryColor : null,
       ),
-      child: isChecked ? const Icon(
-        CupertinoIcons.check_mark, size: 18.0, color: Colors.white,) : null,
+      child: isChecked
+          ? Icon(
+              CupertinoIcons.check_mark,
+              size: 18.0,
+              color: themeData.colorScheme.onPrimary,
+            )
+          : null,
     );
   }
 }
