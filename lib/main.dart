@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:todo_app/db/model/task.dart';
 
@@ -7,15 +8,16 @@ const taskBoxName = 'tasks';
 
 void main() async {
   await Hive.initFlutter();
-  Hive.registerAdapter(TaskAdapter());
+  Hive.registerAdapter(TaskEntityAdapter());
   Hive.registerAdapter(PriorityAdapter());
-  await Hive.openBox<Task>(taskBoxName);
+  await Hive.openBox<TaskEntity>(taskBoxName);
 
   runApp(const MyApp());
 }
 
 const primaryColor = Color(0xff794CFF);
 const primaryContainerColor = Color(0xff5C0AFF);
+const secondaryTextColor = Color(0xffAFBED0);
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -24,10 +26,11 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const primaryTextColor = Color(0xff1D2830);
-    const secondaryTextColor = Color(0xffAFBED0);
     return MaterialApp(
       title: 'Flutter Demo',
       theme: ThemeData(
+        textTheme: GoogleFonts.poppinsTextTheme(const TextTheme(
+            titleLarge: TextStyle(fontWeight: FontWeight.bold))),
         inputDecorationTheme: const InputDecorationTheme(
             labelStyle: TextStyle(color: secondaryTextColor),
             iconColor: secondaryTextColor),
@@ -52,7 +55,7 @@ class TaskListScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final box = Hive.box<Task>(taskBoxName);
+    final box = Hive.box<TaskEntity>(taskBoxName);
     final themeData = Theme.of(context);
     return Scaffold(
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
@@ -117,22 +120,103 @@ class TaskListScreen extends StatelessWidget {
               ),
             ),
             Expanded(
-              child: ValueListenableBuilder<Box<Task>>(
-                valueListenable: box.listenable(),
-                builder: (context, values, child) {
-                  return ListView.builder(
-                      itemCount: values.values.length,
-                      itemBuilder: (context, index) {
-                        final Task task = box.values.toList()[index];
-                        return Container(
-                          child: Text(
-                            task.name,
-                            style: const TextStyle(fontSize: 24),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(12.0, 12.0, 12.0, 100.0),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Today',
+                              style: themeData.textTheme.titleLarge
+                                  ?.apply(fontSizeFactor: 0.8),
+                            ),
+                            Container(
+                              width: 70,
+                              height: 5,
+                              decoration: BoxDecoration(
+                                  color: primaryColor,
+                                  borderRadius: BorderRadius.circular(1.5)),
+                            )
+                          ],
+                        ),
+                        MaterialButton(
+                          color: const Color(0xffEAEFF5),
+                          elevation: 0,
+                          textColor: secondaryTextColor,
+                          onPressed: () {},
+                          child: Row(
+                            children: const [
+                              Text('Delete All'),
+                              SizedBox(
+                                width: 4,
+                              ),
+                              Icon(CupertinoIcons.delete)
+                            ],
                           ),
-                        );
-                      });
-                },
+                        )
+                      ],
+                    ),
+                    Expanded(
+                      child: ValueListenableBuilder<Box<TaskEntity>>(
+                        valueListenable: box.listenable(),
+                        builder: (context, values, child) {
+                          return ListView.builder(
+                              itemCount: values.values.length,
+                              itemBuilder: (context, index) {
+                                final TaskEntity taskEntity =
+                                box.values.toList()[index];
+                                return TaskItem(task: taskEntity);
+                              });
+                        },
+                      ),
+                    ),
+                  ],
+                ),
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class TaskItem extends StatelessWidget {
+  const TaskItem({
+    super.key,
+    required this.task,
+  });
+
+  final TaskEntity task;
+
+  @override
+  Widget build(BuildContext context) {
+    ThemeData themeData = Theme.of(context);
+    return InkWell(
+      onTap: (){
+
+      },
+      child: Container(
+        padding: const EdgeInsets.only(left: 12.0, right: 12.0),
+        height: 84,
+        decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8.0),
+            color: themeData.colorScheme.surface,
+            boxShadow: [
+              BoxShadow(blurRadius: 20.0, color: Colors.black.withOpacity(0.1))
+            ]),
+        child: Row(
+          children: [
+            const TodoCheckBox(isChecked: true),
+            const SizedBox(width: 12.0,),
+            Text(
+              task.name,
+              style: const TextStyle(fontSize: 20.0),
             ),
           ],
         ),
@@ -154,13 +238,13 @@ class EditTaskScreen extends StatelessWidget {
       ),
       floatingActionButton: FloatingActionButton.extended(
           onPressed: () {
-            final task = Task();
+            final task = TaskEntity();
             task.name = _controller.text;
             task.priority = Priority.low;
             if (task.isInBox) {
               task.save();
             } else {
-              final Box<Task> box = Hive.box(taskBoxName);
+              final Box<TaskEntity> box = Hive.box(taskBoxName);
               box.add(task);
             }
             Navigator.of(context).pop();
@@ -171,10 +255,35 @@ class EditTaskScreen extends StatelessWidget {
           TextField(
             controller: _controller,
             decoration:
-                const InputDecoration(label: Text('Add a task for today...')),
+            const InputDecoration(label: Text('Add a task for today...')),
           )
         ],
       ),
+    );
+  }
+}
+
+class TodoCheckBox extends StatelessWidget {
+  final bool isChecked;
+
+  const TodoCheckBox({super.key, required this.isChecked});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 24.0,
+      height: 24.0,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12.0),
+        border: !isChecked
+            ? Border.all(
+          color: secondaryTextColor,
+        )
+            : null,
+        color: isChecked ? primaryColor : null,
+      ),
+      child: isChecked ? const Icon(
+        CupertinoIcons.check_mark, size: 18.0, color: Colors.white,) : null,
     );
   }
 }
