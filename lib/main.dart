@@ -103,188 +103,205 @@ class _TaskListScreenState extends State<TaskListScreen> {
 
   final TextEditingController _controller = TextEditingController();
   final ValueNotifier<String> searchKeywordNotifier = ValueNotifier('');
+  bool _isFocused = false;
+
 
   @override
   Widget build(BuildContext context) {
     final box = Hive.box<TaskEntity>(taskBoxName);
     final themeData = Theme.of(context);
 
-    return Scaffold(
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (context) => EditTaskScreen(
-                taskEntity: TaskEntity(),
+    return GestureDetector(
+      onTap: (){
+        if(_isFocused){
+          FocusScope.of(context).unfocus();
+          setState(() {
+            _isFocused = false;
+          });
+        }
+      },
+      child: Scaffold(
+        floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+        floatingActionButton: FloatingActionButton.extended(
+          onPressed: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => EditTaskScreen(
+                  taskEntity: TaskEntity(),
+                ),
               ),
-            ),
-          );
-        },
-        icon: const Icon(
-          CupertinoIcons.add_circled_solid,
+            );
+          },
+          icon: const Icon(
+            CupertinoIcons.add_circled_solid,
+          ),
+          label: const Text('Add New Task'),
         ),
-        label: const Text('Add New Task'),
-      ),
-      body: Column(
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  themeData.colorScheme.primary,
-                  themeData.colorScheme.primaryContainer,
-                ],
+        body: Column(
+          children: [
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    themeData.colorScheme.primary,
+                    themeData.colorScheme.primaryContainer,
+                  ],
+                ),
+              ),
+              child: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.all(12.0),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'To Do list',
+                            style: themeData.textTheme.titleLarge
+                                ?.apply(color: themeData.colorScheme.onPrimary),
+                          ),
+                          Icon(
+                            CupertinoIcons.share,
+                            color: themeData.colorScheme.onPrimary,
+                          )
+                        ],
+                      ),
+                      const SizedBox(
+                        height: 20.0,
+                      ),
+                      Container(
+                        height: 42.0,
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(19.0),
+                          color: themeData.colorScheme.onPrimary,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(1),
+                            )
+                          ],
+                        ),
+                        child: TextField(
+                          onTap: (){
+                            setState(() {
+                              _isFocused = true;
+                            });
+                          },
+                          onChanged: (value) {
+                            searchKeywordNotifier.value = _controller.text;
+                          },
+                          controller: _controller,
+                          decoration: const InputDecoration(
+                            prefixIcon: Icon(CupertinoIcons.search),
+                            label: Text(
+                              'Search tasks...',
+                            ),
+                            border: InputBorder.none,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
-            child: SafeArea(
+            Expanded(
               child: Padding(
-                padding: const EdgeInsets.all(12.0),
+                padding: const EdgeInsets.fromLTRB(12.0, 12.0, 12.0, 100.0),
                 child: Column(
                   children: [
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          'To Do list',
-                          style: themeData.textTheme.titleLarge
-                              ?.apply(color: themeData.colorScheme.onPrimary),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Today',
+                              style: themeData.textTheme.titleLarge
+                                  ?.apply(fontSizeFactor: 0.8),
+                            ),
+                            Container(
+                              width: 70,
+                              height: 5,
+                              decoration: BoxDecoration(
+                                color: primaryColor,
+                                borderRadius: BorderRadius.circular(1.5),
+                              ),
+                            ),
+                          ],
                         ),
-                        Icon(
-                          CupertinoIcons.share,
-                          color: themeData.colorScheme.onPrimary,
-                        )
+                        MaterialButton(
+                          color: const Color(0xffEAEFF5),
+                          elevation: 0,
+                          textColor: secondaryTextColor,
+                          onPressed: () {
+                            if (box.values.isNotEmpty) {
+                              _showAlert(() {
+                                box.clear();
+                              });
+                            }
+                          },
+                          child: Row(
+                            children: const [
+                              Text(
+                                'Delete All',
+                              ),
+                              SizedBox(
+                                width: 4,
+                              ),
+                              Icon(
+                                CupertinoIcons.delete,
+                              ),
+                            ],
+                          ),
+                        ),
                       ],
                     ),
-                    const SizedBox(
-                      height: 20.0,
-                    ),
-                    Container(
-                      height: 42.0,
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(19.0),
-                        color: themeData.colorScheme.onPrimary,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(1),
-                          )
-                        ],
-                      ),
-                      child: TextField(
-                        onChanged: (value) {
-                          searchKeywordNotifier.value = _controller.text;
+                    Expanded(
+                      child: ValueListenableBuilder<String>(
+                        valueListenable: searchKeywordNotifier,
+                        builder: (context, value, child){
+                          return ValueListenableBuilder<Box<TaskEntity>>(
+                            valueListenable: box.listenable(),
+                            builder: (context, values, child) {
+                              final List<TaskEntity> items;
+                              if (_controller.text.isEmpty) {
+                                items = box.values.toList();
+                              } else {
+                                items = box.values
+                                    .where((element) =>
+                                    element.name.contains(_controller.text))
+                                    .toList();
+                              }
+                              return Center(
+                                child: items.isNotEmpty
+                                    ? ListView.builder(
+                                  itemCount: items.length,
+                                  itemBuilder: (context, index) {
+                                    final TaskEntity taskEntity = items[index];
+                                    return TaskItem(task: taskEntity);
+                                  },
+                                )
+                                    : const Text(
+                                  "You don't have any task...",
+                                  style: TextStyle(
+                                    fontSize: 18.0,
+                                  ),
+                                ),
+                              );
+                            },
+                          );
                         },
-                        controller: _controller,
-                        decoration: const InputDecoration(
-                          prefixIcon: Icon(CupertinoIcons.search),
-                          label: Text(
-                            'Search tasks...',
-                          ),
-                          border: InputBorder.none,
-                        ),
                       ),
                     ),
                   ],
                 ),
               ),
             ),
-          ),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(12.0, 12.0, 12.0, 100.0),
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Today',
-                            style: themeData.textTheme.titleLarge
-                                ?.apply(fontSizeFactor: 0.8),
-                          ),
-                          Container(
-                            width: 70,
-                            height: 5,
-                            decoration: BoxDecoration(
-                              color: primaryColor,
-                              borderRadius: BorderRadius.circular(1.5),
-                            ),
-                          ),
-                        ],
-                      ),
-                      MaterialButton(
-                        color: const Color(0xffEAEFF5),
-                        elevation: 0,
-                        textColor: secondaryTextColor,
-                        onPressed: () {
-                          if (box.values.isNotEmpty) {
-                            _showAlert(() {
-                              box.clear();
-                            });
-                          }
-                        },
-                        child: Row(
-                          children: const [
-                            Text(
-                              'Delete All',
-                            ),
-                            SizedBox(
-                              width: 4,
-                            ),
-                            Icon(
-                              CupertinoIcons.delete,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  Expanded(
-                    child: ValueListenableBuilder<String>(
-                      valueListenable: searchKeywordNotifier,
-                      builder: (context, value, child){
-                        return ValueListenableBuilder<Box<TaskEntity>>(
-                          valueListenable: box.listenable(),
-                          builder: (context, values, child) {
-                            final List<TaskEntity> items;
-                            if (_controller.text.isEmpty) {
-                              items = box.values.toList();
-                            } else {
-                              items = box.values
-                                  .where((element) =>
-                                  element.name.contains(_controller.text))
-                                  .toList();
-                            }
-                            return Center(
-                              child: items.isNotEmpty
-                                  ? ListView.builder(
-                                itemCount: items.length,
-                                itemBuilder: (context, index) {
-                                  final TaskEntity taskEntity = items[index];
-                                  return TaskItem(task: taskEntity);
-                                },
-                              )
-                                  : const Text(
-                                "You don't have any task...",
-                                style: TextStyle(
-                                  fontSize: 18.0,
-                                ),
-                              ),
-                            );
-                          },
-                        );
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
