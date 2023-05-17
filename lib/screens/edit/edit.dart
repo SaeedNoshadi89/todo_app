@@ -1,8 +1,9 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:todo_app/db/model/task.dart';
+import 'package:todo_app/data/db/model/task.dart';
 import 'package:todo_app/main.dart';
+import 'package:todo_app/widgets.dart';
 
 class EditTaskScreen extends StatefulWidget {
   final TaskEntity taskEntity;
@@ -160,38 +161,6 @@ class PriorityRadioButton extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-}
-
-class TodoRadioButton extends StatelessWidget {
-  final bool isChecked;
-  final Color color;
-
-  const TodoRadioButton(
-      {super.key, required this.isChecked, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    final ThemeData themeData = Theme.of(context);
-
-    return Container(
-      width: 16.0,
-      height: 16.0,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12.0),
-        color: color,
-      ),
-      child: isChecked
-          ? Padding(
-        padding: const EdgeInsets.all(4.0),
-        child: Container(
-          decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12.0),
-              color: themeData.colorScheme.surface),
-        ),
-      )
-          : null,
     );
   }
 }
